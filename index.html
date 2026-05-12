@@ -35,7 +35,7 @@
         min-width: 120px; 
         text-align: center; 
         user-select: none;
-        touch-action: none; /* Cruciaal voor iPad */
+        touch-action: none; 
     }
     .delete-btn {
         position: absolute;
@@ -75,7 +75,7 @@
 
 <div class="container">
 
-    <!-- STAP 1: COÖPERATIEF BRAINSTORMEN (Was Stap 2) -->
+    <!-- STAP 1: COÖPERATIEF BRAINSTORMEN (Originele Stap 2) -->
     <div class="step active" id="step-1">
         <h2 style="text-align: center;">Stap A: Coöperatief Brainstormen</h2>
         <div style="display: flex; gap: 10px; margin-bottom: 15px; background: #f0f4f8; padding: 15px; border-radius: 15px;">
@@ -121,7 +121,7 @@
         </div>
     </div>
 
-    <!-- STAP 2: WORKSHOP DASHBOARD (Was Stap 1) -->
+    <!-- STAP 2: WORKSHOP DASHBOARD (Originele Stap 1) -->
     <div class="step" id="step-2">
         <div style="background: #fee2e2; color: #991b1b; padding: 15px; border-radius: 12px; margin-bottom: 25px; border: 1px solid #fecaca; text-align: center; font-weight: bold;">
             ⚠️ BELANGRIJK: Voer NOOIT echte persoonsgegevens of vertrouwelijke informatie in!
@@ -138,7 +138,7 @@
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
             <a href="https://github.com/" target="_blank" class="btn" style="background:var(--github-vibrant); text-align:center; padding: 25px;"><h3>GitHub</h3><small>Link op internet</small></a>
             <a href="https://console.firebase.google.com/" target="_blank" class="btn" style="background:var(--firebase-vibrant); text-align:center; padding: 25px; color: #4d3a00;"><h3>Firebase</h3><small>Motor voor interactie</small></a>
-            <a href="https://gemini.google.com/" target="_blank" class="btn" style="background:var(--gemini-vibrant); text-align:center; padding: 25px;"><h3>Gemini</h3><small>Ontwerpt jouw les<br>slim prompten</small></a>
+            <a href="https://gemini.google.com/" target="_blank" class="btn" style="background:var(--gemini-vibrant); text-align:center; padding: 25px;"><h3>Gemini</h3><small>Ontwerpt jouw les</small></a>
         </div>
 
         <div style="background: #fff9db; color: #856404; padding: 15px; border-radius: 12px; margin-bottom: 25px; border: 1px solid #ffeeba; font-size: 0.9rem;">
@@ -161,7 +161,7 @@
         </div>
     </div>
 
-
+    <!-- TUSSENLIGGENDE STAPPEN ONGEWIJZIGD -->
     <div class="step" id="step-3"><h2>Inspiratie 1</h2><iframe src="https://padocentdebie.github.io/PVBEvindingen5foutievezinnen/" style="width:100%; height:600px;"></iframe></div>
     <div class="step" id="step-4"><h2>Inspiratie 2</h2><iframe src="https://padocentdebie.github.io/Q2PVBevindingen5woordenschatbingo/" style="width:100%; height:600px;"></iframe></div>
     <div class="step" id="step-5"><h2>Inspiratie 3</h2><iframe src="https://padocentdebie.github.io/Q1MutatielesPVAangifteles2samenstellingen/" style="width:100%; height:600px;"></iframe></div>
@@ -231,7 +231,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getDatabase, ref, push, remove, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+    import { getDatabase, ref, push, remove, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
     const masterConfig = { apiKey: "AIzaSyBRq1HFmhrpW_EMMZwpURrbTArz-L5iWT4", databaseURL: "https://pvaangifteinleveren-77dbe-default-rtdb.europe-west1.firebasedatabase.app" };
     const app = initializeApp(masterConfig);
@@ -270,16 +270,10 @@
         woorden.forEach(t => push(ref(db, 'workshop/whiteboard/words'), { text: t, x: 200 + (Math.random()*800), y: 100 + (Math.random()*400) }));
     };
 
-    window.deleteSticky = (key) => {
-        remove(ref(db, `workshop/whiteboard/words/${key}`));
-    };
+    window.deleteSticky = (key) => remove(ref(db, `workshop/whiteboard/words/${key}`));
 
     const startDrag = (key, clientX, clientY, currentX, currentY, div) => {
-        activeKey = key;
-        dragStart.x = clientX;
-        dragStart.y = clientY;
-        elementStart.x = currentX;
-        elementStart.y = currentY;
+        activeKey = key; dragStart = { x: clientX, y: clientY }; elementStart = { x: currentX, y: currentY };
         div.style.zIndex = 1000;
     };
 
@@ -287,11 +281,7 @@
         const container = document.getElementById('sticky-container');
         if (!container) return;
         const data = snapshot.val();
-        
-        container.querySelectorAll('.sticky-note').forEach(note => {
-            if (!data || !data[note.dataset.key]) note.remove();
-        });
-
+        container.querySelectorAll('.sticky-note').forEach(note => { if (!data || !data[note.dataset.key]) note.remove(); });
         if (data) {
             Object.entries(data).forEach(([key, v]) => {
                 let div = container.querySelector(`[data-key="${key}"]`);
@@ -300,26 +290,11 @@
                     div.className = 'sticky-note';
                     div.dataset.key = key;
                     div.innerHTML = `<span>${v.text}</span><div class="delete-btn" onclick="deleteSticky('${key}')">✖</div>`;
-                    
-                    div.onmousedown = (e) => {
-                        if (e.target.className === 'delete-btn') return;
-                        startDrag(key, e.clientX, e.clientY, v.x, v.y, div);
-                        e.preventDefault();
-                    };
-
-                    div.ontouchstart = (e) => {
-                        if (e.target.className === 'delete-btn') return;
-                        const touch = e.touches[0];
-                        startDrag(key, touch.clientX, touch.clientY, v.x, v.y, div);
-                    };
-
+                    div.onmousedown = (e) => { if (e.target.className !== 'delete-btn') { startDrag(key, e.clientX, e.clientY, v.x, v.y, div); e.preventDefault(); } };
+                    div.ontouchstart = (e) => { if (e.target.className !== 'delete-btn') { startDrag(key, e.touches[0].clientX, e.touches[0].clientY, v.x, v.y, div); } };
                     container.appendChild(div);
                 }
-                
-                if (activeKey !== key) {
-                    div.style.left = v.x + 'px';
-                    div.style.top = v.y + 'px';
-                }
+                if (activeKey !== key) { div.style.left = v.x + 'px'; div.style.top = v.y + 'px'; }
             });
         }
     });
@@ -327,47 +302,28 @@
     const moveHandler = (clientX, clientY) => {
         if (!activeKey) return;
         const div = document.querySelector(`[data-key="${activeKey}"]`);
-        if (!div) return;
-
-        const dx = clientX - dragStart.x;
-        const dy = clientY - dragStart.y;
-        
-        div.style.left = (elementStart.x + dx) + 'px';
-        div.style.top = (elementStart.y + dy) + 'px';
+        if (div) {
+            div.style.left = (elementStart.x + (clientX - dragStart.x)) + 'px';
+            div.style.top = (elementStart.y + (clientY - dragStart.y)) + 'px';
+        }
     };
 
     window.addEventListener('mousemove', (e) => moveHandler(e.clientX, e.clientY));
-    window.addEventListener('touchmove', (e) => {
+    window.addEventListener('touchmove', (e) => { if (activeKey) { moveHandler(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); } }, { passive: false });
+    window.addEventListener('mouseup', () => {
         if (activeKey) {
-            moveHandler(e.touches[0].clientX, e.touches[0].clientY);
-            e.preventDefault();
+            const div = document.querySelector(`[data-key="${activeKey}"]`);
+            if (div) update(ref(db, `workshop/whiteboard/words/${activeKey}`), { x: parseInt(div.style.left), y: parseInt(div.style.top) });
+            activeKey = null;
         }
-    }, { passive: false });
+    });
 
-    const endDrag = () => {
-        if (!activeKey) return;
-        const div = document.querySelector(`[data-key="${activeKey}"]`);
-        if (div) {
-            update(ref(db, `workshop/whiteboard/words/${activeKey}`), { 
-                x: parseInt(div.style.left), 
-                y: parseInt(div.style.top) 
-            });
-            div.style.zIndex = 10;
-        }
-        activeKey = null;
-    };
-
-    window.addEventListener('mouseup', endDrag);
-    window.addEventListener('touchend', endDrag);
-
-    window.clearFullReset = () => { if(confirm("Bord leegmaken?")) remove(ref(db, 'workshop/whiteboard/words')); };
-
+    // --- OVERIGE LOGICA ---
     window.updatePreview = () => {
         const url = document.getElementById('github-url').value.trim();
         const container = document.getElementById('live-preview-container');
         const iframe = document.getElementById('github-preview-iframe');
         if (url.startsWith('http')) { iframe.src = url; container.style.display = 'block'; }
-        else { container.style.display = 'none'; }
     };
 
     window.saveGithubLink = () => {
@@ -376,7 +332,6 @@
         if (url.startsWith('http')) {
             push(ref(db, 'workshop/links'), { url, naam });
             document.getElementById('iframe-output').innerText = `<iframe src="${url}" width="100%" height="600px" frameborder="0"></iframe>`;
-            alert("Opgeslagen!");
             window.changeStep(1);
         }
     };
@@ -401,48 +356,36 @@
         const doel = document.getElementById('les-doel').value;
         const vorm = document.getElementById('les-werkvorm').value;
         const config = document.getElementById('user-firebase-config').value || "// Geen config ingevuld";
-        
-        const prompt = `Hoi Gemini, ik ben ${naam}. Ik wil een interactieve les maken.\n\n` +
-                       `Leerdoel: ${doel}\n` +
-                       `Werkvorm: ${vorm}\n\n` +
-                       `Gebruik deze Firebase configuratie voor de interactiviteit:\n${config}\n\n` +
-                       `Genereer een volledige HTML-pagina inclusief de bijbehorende CSS en JavaScript (in één bestand).`;
-        
+        const prompt = `Hoi Gemini, ik ben ${naam}. Leerdoel: ${doel}\nWerkvorm: ${vorm}\nFirebase:\n${config}\nGenereer HTML.`;
         document.getElementById('generated-prompt').innerText = prompt;
         navigator.clipboard.writeText(prompt);
         push(ref(db, 'workshop/shared_prompts'), { naam, doel });
         window.changeStep(1);
     };
 
-    onValue(ref(db, 'workshop/shared_prompts'), (snapshot) => {
-        const feedContainer = document.getElementById('prompt-live-feed');
-        if (!feedContainer) return;
-        const data = snapshot.val();
-        if (data) {
-            feedContainer.innerHTML = '';
-            Object.values(data).reverse().slice(0, 5).forEach(item => {
-                const div = document.createElement('div');
-                div.innerHTML = `• <b>${item.naam}</b>: ${item.doel}`;
-                feedContainer.appendChild(div);
+    // --- MAIL FUNCTIE MET ALLE LINKS ---
+    window.mailAlleSchermen = async () => {
+        const naam = document.getElementById('participant-name').value || "Deelnemer";
+        const doel = document.getElementById('les-doel').value || "Geen doel opgegeven";
+        
+        // Haal alle gedeelde links op uit de database
+        const snapshot = await get(ref(db, 'workshop/links'));
+        let linksLijst = "\n\nOVERZICHT GEREALISEERDE LESSEN:\n";
+        
+        if (snapshot.exists()) {
+            Object.values(snapshot.val()).forEach(item => {
+                linksLijst += `- ${item.naam}: ${item.url}\n`;
             });
+        } else {
+            linksLijst += "Er zijn nog geen lessen gedeeld.";
         }
-    });
+
+        const body = `Resultaten Workshop 2026\n\nDeelnemer: ${naam}\nLeerdoel: ${doel}${linksLijst}`;
+        window.location.href = `mailto:?subject=Workshop Resultaten van ${naam}&body=${encodeURIComponent(body)}`;
+    };
 
     window.copyToClipboard = (id) => { navigator.clipboard.writeText(document.getElementById(id).innerText); alert("Gekopieerd!"); };
-    
-    window.mailAlleSchermen = () => {
-        const naam = document.getElementById('participant-name').value;
-        const doel = document.getElementById('les-doel').value;
-        const body = `Naam: ${naam}\nLeerdoel: ${doel}`;
-        window.location.href = `mailto:?subject=Workshop Resultaten&body=${encodeURIComponent(body)}`;
-    };
-
-    window.hardResetAlles = () => {
-        if(confirm("DIT VERWIJDERT ALLES VOOR IEDEREEN. Weet je het zeker?")) {
-            remove(ref(db, 'workshop'));
-            location.reload();
-        }
-    };
+    window.hardResetAlles = () => { if(confirm("ALLES VERWIJDEREN?")) { remove(ref(db, 'workshop')); location.reload(); } };
 </script>
 
 </body>
